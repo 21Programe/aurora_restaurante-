@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurora Restaurante | Caixa</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    h1 { margin-bottom: 8px; }
+    p { color: #94a3b8; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .line {
+      margin: 6px 0;
+      color: #cbd5e1;
+    }
+    .total {
+      font-size: 22px;
+      font-weight: bold;
+      color: #22c55e;
+      margin-top: 12px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-ajuste { background: #38bdf8; color: #0f172a; }
+    .btn-fechar { background: #22c55e; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Painel do Caixa</h1>
+  <p>Visualização de comandas abertas, ajustes e fechamento.</p>
+
+  <div class="actions">
+    <button class="btn-ajuste" onclick="carregarComandas()">Atualizar</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+
+    async function carregarComandas() {
+      const response = await fetch(`${API_BASE}/comandas?status=aberta`);
+      const comandas = await response.json();
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      for (const comanda of comandas) {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <div class="title">Comanda ${comanda.numero_comanda}</div>
+          <div class="line">Mesa ID: ${comanda.mesa_id}</div>
+          <div class="line">Garçom ID: ${comanda.garcom_id}</div>
+          <div class="line">Subtotal: R$ ${Number(comanda.subtotal).toFixed(2)}</div>
+          <div class="line">Taxa de serviço: R$ ${Number(comanda.taxa_servico).toFixed(2)}</div>
+          <div class="line">Desconto: R$ ${Number(comanda.desconto).toFixed(2)}</div>
+          <div class="total">Total: R$ ${Number(comanda.total).toFixed(2)}</div>
+          <div class="actions">
+            <button class="btn-ajuste" onclick="aplicarAjuste(${comanda.id})">Ajustar</button>
+            <button class="btn-fechar" onclick="fecharComanda(${comanda.id})">Fechar</button>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      }
+    }
+
+    async function aplicarAjuste(comandaId) {
+      const taxa = prompt("Taxa de serviço:", "0");
+      const desconto = prompt("Desconto:", "0");
+
+      if (taxa === null || desconto === null) return;
+
+      await fetch(`${API_BASE}/fechamento/ajustar?comanda_id=${comandaId}&taxa_servico=${taxa}&desconto=${desconto}`, {
+        method: "POST"
+      });
+
+      carregarComandas();
+    }
+
+    async function fecharComanda(comandaId) {
+      const forma = prompt("Forma de pagamento:", "dinheiro");
+      if (!forma) return;
+
+      await fetch(`${API_BASE}/fechamento/fechar?comanda_id=${comandaId}&forma_pagamento=${encodeURIComponent(forma)}`, {
+        method: "POST"
+      });
+
+      carregarComandas();
+    }
+
+    carregarComandas();
+  </script>
+</body>
+</html>

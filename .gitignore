@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual env
+venv/
+.venv/
+env/
+ENV/
+
+# Logs
+*.log
+
+# SQLite
+*.db
+*.sqlite3
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# React Native / Expo
+.expo/
+.expo-shared/
+
+# Cache
+.cache/
+
+# Uploads / temp
+tmp/
+temp/
+uploads/
+
+# Alembic cache
+alembic/versions/__pycache__/
+
+# Static generated files
+frontend/dist/
+mobile_app/dist/
+
+# Local database and secrets
+aurora_restaurante.db

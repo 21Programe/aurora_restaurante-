@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurora Restaurante | Cozinha</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .title-box h1 {
+      font-size: 28px;
+      color: #f8fafc;
+    }
+
+    .title-box p {
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .mini-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 12px 16px;
+      min-width: 140px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .mini-card strong {
+      display: block;
+      font-size: 22px;
+      color: #38bdf8;
+      margin-top: 6px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    select,
+    button {
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    select {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+
+    .btn-refresh {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    .btn-filter {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+
+    .notification {
+      display: none;
+      background: #14532d;
+      border: 1px solid #22c55e;
+      color: #dcfce7;
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 18px;
+    }
+
+    .pedido-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+
+    .pedido-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+
+    .pedido-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #f8fafc;
+    }
+
+    .pedido-subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .badge-enviado {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+
+    .badge-em_preparo {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .badge-pronto {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .badge-entregue {
+      background: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .badge-setor {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      margin-left: 8px;
+    }
+
+    .pedido-body {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .itens-box {
+      margin-top: 10px;
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .item-linha {
+      padding: 10px 0;
+      border-bottom: 1px solid #243244;
+    }
+
+    .item-linha:last-child {
+      border-bottom: none;
+    }
+
+    .item-topo {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: bold;
+      color: #f8fafc;
+    }
+
+    .item-obs {
+      margin-top: 6px;
+      color: #fbbf24;
+      font-size: 13px;
+    }
+
+    .pedido-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-preparo {
+      background: #0ea5e9;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-pronto {
+      background: #22c55e;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-entregue {
+      background: #64748b;
+      color: white;
+      flex: 1;
+    }
+
+    .empty-state {
+      margin-top: 30px;
+      text-align: center;
+      color: #94a3b8;
+      padding: 30px;
+      border: 1px dashed #334155;
+      border-radius: 16px;
+      background: #111827;
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      color: #64748b;
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="title-box">
+      <h1>Painel Operacional</h1>
+      <p>Aurora Restaurante • Cozinha e Bar em tempo real</p>
+    </div>
+
+    <div class="status-bar">
+      <div class="mini-card">
+        Total
+        <strong id="totalPedidos">0</strong>
+      </div>
+      <div class="mini-card">
+        Enviados
+        <strong id="totalEnviados">0</strong>
+      </div>
+      <div class="mini-card">
+        Em preparo
+        <strong id="totalPreparo">0</strong>
+      </div>
+      <div class="mini-card">
+        Prontos
+        <strong id="totalProntos">0</strong>
+      </div>
+    </div>
+  </div>
+
+  <div id="notification" class="notification"></div>
+
+  <div class="actions">
+    <button class="btn-refresh" onclick="carregarPedidos()">Atualizar pedidos</button>
+
+    <button class="btn-filter" onclick="filtrarStatus('todos')">Todos</button>
+    <button class="btn-filter" onclick="filtrarStatus('enviado')">Enviados</button>
+    <button class="btn-filter" onclick="filtrarStatus('em_preparo')">Em preparo</button>
+    <button class="btn-filter" onclick="filtrarStatus('pronto')">Prontos</button>
+
+    <select id="setorSelect" onchange="carregarPedidos()">
+      <option value="">Todos os setores</option>
+      <option value="cozinha">Cozinha</option>
+      <option value="bar">Bar</option>
+    </select>
+  </div>
+
+  <div id="pedidosGrid" class="grid"></div>
+
+  <div class="footer-note">
+    Aurora Restaurante • Painel profissional de produção
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    let pedidosCache = [];
+    let filtroAtual = "todos";
+
+    function mostrarNotificacao(texto) {
+      const box = document.getElementById("notification");
+      box.innerText = texto;
+      box.style.display = "block";
+
+      setTimeout(() => {
+        box.style.display = "none";
+      }, 3500);
+    }
+
+    function badgeClass(status) {
+      if (status === "enviado") return "badge badge-enviado";
+      if (status === "em_preparo") return "badge badge-em_preparo";
+      if (status === "pronto") return "badge badge-pronto";
+      if (status === "entregue") return "badge badge-entregue";
+      return "badge";
+    }
+
+    function atualizarResumo(lista) {
+      document.getElementById("totalPedidos").innerText = lista.length;
+      document.getElementById("totalEnviados").innerText = lista.filter(p => p.status === "enviado").length;
+      document.getElementById("totalPreparo").innerText = lista.filter(p => p.status === "em_preparo").length;
+      document.getElementById("totalProntos").innerText = lista.filter(p => p.status === "pronto").length;
+    }
+
+    function renderItens(itens) {
+      if (!itens || !itens.length) {
+        return `<div class="item-linha">Nenhum item vinculado.</div>`;
+      }
+
+      return itens.map(item => `
+        <div class="item-linha">
+          <div class="item-topo">
+            <span>${item.quantidade}x ${item.nome_produto}</span>
+            <span>R$ ${Number(item.subtotal).toFixed(2)}</span>
+          </div>
+          ${item.observacao ? `<div class="item-obs">Obs: ${item.observacao}</div>` : ""}
+        </div>
+      `).join("");
+    }
+
+    function renderPedidos(lista) {
+      const grid = document.getElementById("pedidosGrid");
+      grid.innerHTML = "";
+
+      if (!lista.length) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            Nenhum pedido encontrado para este filtro.
+          </div>
+        `;
+        atualizarResumo(lista);
+        return;
+      }
+
+      lista.forEach((pedido) => {
+        const card = document.createElement("div");
+        card.className = "pedido-card";
+
+        card.innerHTML = `
+          <div class="pedido-header">
+            <div>
+              <div class="pedido-title">
+                Pedido #${pedido.id}
+                <span class="badge badge-setor">${pedido.setor_destino}</span>
+              </div>
+              <div class="pedido-subtitle">
+                Mesa ${pedido.mesa_numero} • Comanda ${pedido.comanda_id}<br>
+                Garçom ID: ${pedido.garcom_id}<br>
+                Criado em: ${formatarData(pedido.criado_em)}
+              </div>
+            </div>
+            <span class="${badgeClass(pedido.status)}">${pedido.status.replace("_", " ")}</span>
+          </div>
+
+          <div class="pedido-body">
+            <div><strong>Itens do pedido:</strong></div>
+            <div class="itens-box">
+              ${renderItens(pedido.itens)}
+            </div>
+          </div>
+
+          <div class="pedido-actions">
+            <button class="btn-preparo" onclick="atualizarStatus(${pedido.id}, 'em_preparo')">
+              Em preparo
+            </button>
+            <button class="btn-pronto" onclick="atualizarStatus(${pedido.id}, 'pronto')">
+              Pronto
+            </button>
+            <button class="btn-entregue" onclick="atualizarStatus(${pedido.id}, 'entregue')">
+              Entregue
+            </button>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+
+      atualizarResumo(lista);
+    }
+
+    function aplicarFiltro() {
+      let lista = [...pedidosCache];
+
+      if (filtroAtual !== "todos") {
+        lista = lista.filter(p => p.status === filtroAtual);
+      }
+
+      renderPedidos(lista);
+    }
+
+    function filtrarStatus(status) {
+      filtroAtual = status;
+      aplicarFiltro();
+    }
+
+    async function carregarPedidos() {
+      try {
+        const setor = document.getElementById("setorSelect").value;
+        let url = `${API_BASE}/cozinha/pedidos`;
+
+        if (setor) {
+          url += `?setor=${setor}`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        pedidosCache = data;
+        aplicarFiltro();
+      } catch (error) {
+        console.error("Erro ao carregar pedidos:", error);
+        mostrarNotificacao("Erro ao carregar pedidos.");
+      }
+    }
+
+  async function atualizarStatus(pedidoId, novoStatus) {
+  try {
+    // A CORREÇÃO: O método POST tem que estar dentro do fetch!
+    const response = await fetch(
+      `${API_BASE}/cozinha/pedido/status?pedido_id=${pedidoId}&novo_status=${novoStatus}`,
+      { method: "POST" } 
+    );
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.detail || "Falha ao atualizar status");
+    }
+
+    mostrarNotificacao(`Pedido #${pedidoId} marcado como ${novoStatus.replace("_", " ")}.`);
+    
+    // Isso aqui faz a tela atualizar sozinha para você ver a mudança
+    await carregarPedidos(); 
+  } catch (error) {
+    console.error("Erro ao atualizar status:", error);
+    mostrarNotificacao("Erro ao mudar status. Verifique o terminal.");
+  }
+}
+
+    function formatarData(valor) {
+      if (!valor) return "-";
+      const data = new Date(valor);
+      if (isNaN(data.getTime())) return valor;
+      return data.toLocaleString("pt-BR");
+    }
+
+    function iniciarWebSocket() {
+      const socketCozinha = new WebSocket("ws://127.0.0.1:8000/ws/cozinha");
+      const socketBar = new WebSocket("ws://127.0.0.1:8000/ws/bar");
+
+      const tratarMensagem = async (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (payload.evento === "pedido_criado") {
+            mostrarNotificacao("Novo pedido recebido em tempo real.");
+            await carregarPedidos();
+          }
+
+          if (payload.evento === "pedido_status_atualizado") {
+            mostrarNotificacao("Status atualizado em tempo real.");
+            await carregarPedidos();
+          }
+        } catch (error) {
+          console.error("Erro ao processar WebSocket:", error);
+        }
+      };
+
+      socketCozinha.onmessage = tratarMensagem;
+      socketBar.onmessage = tratarMensagem;
+
+      socketCozinha.onclose = () => setTimeout(iniciarWebSocket, 2000);
+      socketBar.onclose = () => setTimeout(iniciarWebSocket, 2000);
+    }
+
+    carregarPedidos();
+    iniciarWebSocket();
+  </script>
+</body>
+</html>

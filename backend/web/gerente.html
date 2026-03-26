@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurora Restaurante | Gerência</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #020617;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    h1 { margin-bottom: 8px; }
+    p { color: #94a3b8; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .box {
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .box h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    .box strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 28px;
+      color: #38bdf8;
+    }
+    .section {
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+    .row {
+      padding: 10px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .row:last-child {
+      border-bottom: none;
+    }
+    button {
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Painel de Gerência</h1>
+  <p>Visão consolidada de mesas, comandas e operação.</p>
+
+  <button onclick="carregarDashboard()">Atualizar dashboard</button>
+
+  <div class="stats">
+    <div class="box">
+      <h3>Total de mesas</h3>
+      <strong id="totalMesas">0</strong>
+    </div>
+    <div class="box">
+      <h3>Mesas ocupadas</h3>
+      <strong id="mesasOcupadas">0</strong>
+    </div>
+    <div class="box">
+      <h3>Comandas abertas</h3>
+      <strong id="comandasAbertas">0</strong>
+    </div>
+    <div class="box">
+      <h3>Pedidos em preparo</h3>
+      <strong id="pedidosPreparo">0</strong>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Resumo de mesas</h2>
+    <div id="listaMesas"></div>
+  </div>
+
+  <div class="section">
+    <h2>Resumo de comandas abertas</h2>
+    <div id="listaComandas"></div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+
+  async function carregarDashboard() {
+  const [mesasResp, comandasAbertasResp, todasComandasResp, pedidosResp] = await Promise.all([
+    fetch(`${API_BASE}/mesas`),
+    fetch(`${API_BASE}/comandas?status=aberta`),
+    fetch(`${API_BASE}/comandas`), // Busca TODAS para o histórico
+    fetch(`${API_BASE}/cozinha/pedidos?status=em_preparo`)
+  ]);
+
+  const mesas = await mesasResp.json();
+  const comandasAbertas = await comandasAbertasResp.json();
+  const todasComandas = await todasComandasResp.json();
+  const pedidosEmPreparo = await pedidosResp.json();
+
+  // ATUALIZA OS BLOCOS DE CIMA
+  document.getElementById("totalMesas").innerText = mesas.length;
+  document.getElementById("mesasOcupadas").innerText = mesas.filter(m => m.status !== "livre").length;
+  document.getElementById("comandasAbertas").innerText = comandasAbertas.length;
+  document.getElementById("pedidosPreparo").innerText = pedidosEmPreparo.length;
+
+  // CALCULA O FATURAMENTO TOTAL (Vendas memorizadas)
+  const totalVendido = todasComandas
+    .filter(c => c.status === 'fechada')
+    .reduce((acc, curr) => acc + curr.total, 0);
+  
+  // Você pode adicionar um novo card no HTML para mostrar este 'totalVendido'
+
+  // LISTA DE MESAS (IGUAL AO ANTERIOR)
+  const listaMesas = document.getElementById("listaMesas");
+  listaMesas.innerHTML = mesas.map(m => `
+    <div class="row">
+      Mesa ${m.numero} • Status: <span style="color: ${m.status === 'livre' ? '#22c55e' : '#ef4444'}">${m.status.replaceAll("_", " ")}</span>
+    </div>
+  `).join("");
+
+  // LISTA DE COMANDAS ATIVAS
+  const listaComandas = document.getElementById("listaComandas");
+  listaComandas.innerHTML = comandasAbertas.map(c => `
+    <div class="row">
+      ${c.numero_comanda} • Total Atual: <strong>R$ ${Number(c.total).toFixed(2)}</strong>
+    </div>
+  `).join("");
+}
+
+    carregarDashboard();
+  </script>
+</body>
+</html>
