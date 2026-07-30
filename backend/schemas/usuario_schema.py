@@ -1,26 +1,34 @@
-from pydantic import BaseModel, EmailStr
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+
+PerfilUsuario = Literal["garcom", "caixa", "cozinha", "gerente"]
 
 
 class UsuarioBase(BaseModel):
-    nome: str
+    nome: str = Field(min_length=2, max_length=120)
     email: EmailStr
-    perfil: str = "garcom"
+    perfil: PerfilUsuario = "garcom"
 
 
-class UsuarioCreate(BaseModel):
-    nome: str
-    email: EmailStr
-    senha: str
-    perfil: str = "garcom"
+class UsuarioCreate(UsuarioBase):
+    senha: str = Field(min_length=8, max_length=128)
 
 
 class UsuarioLogin(BaseModel):
     email: EmailStr
-    senha: str
+    senha: str = Field(min_length=1, max_length=128)
 
 
 class UsuarioResponse(UsuarioBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
+    usuario: UsuarioResponse

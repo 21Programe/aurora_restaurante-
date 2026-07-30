@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,11 +8,15 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
+  TextInput,
 } from "react-native";
 
 import {
+  login as autenticar,
+  clearAccessToken,
   listarMesas,
   listarProdutos,
+  listarComandas,
   abrirComanda,
   adicionarItemComanda,
   enviarPedido,
@@ -22,6 +26,11 @@ export default function App() {
   const [telaAtual, setTelaAtual] = useState("mesas"); // mesas | cardapio | carrinho
   const [loading, setLoading] = useState(false);
   const [enviandoPedido, setEnviandoPedido] = useState(false);
+  const [autenticando, setAutenticando] = useState(false);
+
+  const [usuario, setUsuario] = useState(null);
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
 
   const [mesas, setMesas] = useState([]);
   const [produtos, setProdutos] = useState([]);
@@ -32,9 +41,31 @@ export default function App() {
   // carrinho local visual do app
   const [carrinho, setCarrinho] = useState([]);
 
-  useEffect(() => {
-    carregarDadosIniciais();
-  }, []);
+  async function handleLogin() {
+    if (!email.trim() || !senha) {
+      Alert.alert("Atenção", "Informe e-mail e senha.");
+      return;
+    }
+
+    setAutenticando(true);
+    try {
+      const sessao = await autenticar(email.trim(), senha);
+      setUsuario(sessao.usuario);
+      setSenha("");
+      await carregarDadosIniciais();
+    } catch (error) {
+      Alert.alert("Login não realizado", error.message);
+    } finally {
+      setAutenticando(false);
+    }
+  }
+
+  function handleLogout() {
+    clearAccessToken();
+    setUsuario(null);
+    setSenha("");
+    resetFluxoMesa();
+  }
 
   async function carregarDadosIniciais() {
     setLoading(true);
@@ -66,8 +97,8 @@ export default function App() {
       let idComanda;
 
       if (mesa.status === "livre") {
-        // Fluxo normal: Abre nova comanda para mesa livre (Garçom ID 1 fixo)
-        const resposta = await abrirComanda(mesa.id, 1);
+        // O backend vincula a comanda ao usuário autenticado.
+        const resposta = await abrirComanda(mesa.id);
         idComanda = resposta.comanda_id;
         setCarrinho([]); // Carrinho visual novo vazio
       } else {
@@ -212,6 +243,51 @@ export default function App() {
     }
   }
 
+  if (!usuario) {
+    return (
+      <SafeAreaView style={styles.loginContainer}>
+        <View style={styles.loginCard}>
+          <Text style={styles.loginTitle}>Aurora Restaurante</Text>
+          <Text style={styles.loginSubtitle}>
+            Entre com sua conta para iniciar o atendimento.
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="E-mail"
+            placeholderTextColor="#64748b"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            value={senha}
+            onChangeText={setSenha}
+            placeholder="Senha"
+            placeholderTextColor="#64748b"
+            secureTextEntry
+            onSubmitEditing={handleLogin}
+          />
+
+          <TouchableOpacity
+            style={[styles.loginButton, autenticando && {opacity: 0.7}]}
+            onPress={handleLogin}
+            disabled={autenticando}
+          >
+            {autenticando ? (
+              <ActivityIndicator color="#0f172a" />
+            ) : (
+              <Text style={styles.loginButtonText}>Entrar</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.containerCenter}>
@@ -228,6 +304,14 @@ export default function App() {
         {telaAtual !== "mesas" && (
           <Text style={styles.headerSubtitle}>Mesa {mesaSelecionada?.numero}</Text>
         )}
+        <View style={styles.headerUserRow}>
+          <Text style={styles.headerUser}>
+            {usuario.nome} · {usuario.perfil}
+          </Text>
+          <TouchableOpacity onPress={handleLogout}>
+            <Text style={styles.logoutText}>Sair</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {telaAtual === "mesas" && (
@@ -377,6 +461,55 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  loginContainer: {
+    flex: 1,
+    backgroundColor: "#0f172a",
+    justifyContent: "center",
+    padding: 24,
+  },
+  loginCard: {
+    backgroundColor: "#1e293b",
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  loginTitle: {
+    color: "#f8fafc",
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  loginSubtitle: {
+    color: "#94a3b8",
+    fontSize: 15,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  input: {
+    backgroundColor: "#0f172a",
+    color: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#475569",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  loginButton: {
+    backgroundColor: "#38bdf8",
+    borderRadius: 10,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  loginButtonText: {
+    color: "#0f172a",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
   loadingText: {
     color: "#94a3b8",
     marginTop: 10,
@@ -403,6 +536,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
     fontWeight: "bold",
+  },
+  headerUserRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 10,
+  },
+  headerUser: {
+    color: "#94a3b8",
+    fontSize: 13,
+  },
+  logoutText: {
+    color: "#f87171",
+    fontWeight: "bold",
+    fontSize: 13,
   },
 
   content: {
