@@ -77,6 +77,16 @@ Senhas novas são armazenadas com hash. Contas antigas que ainda estejam
 em texto puro são migradas automaticamente para hash após o primeiro
 login válido.
 
+O aplicativo móvel mostra a tela de login antes de carregar mesas e
+produtos. Configure o endereço da API antes de iniciar o Expo:
+
+```bash
+EXPO_PUBLIC_API_URL=http://SEU-IP:8000 npm start
+```
+
+`127.0.0.1` aponta para o próprio aparelho ou emulador; em um celular
+físico, use o IP do computador que executa a API.
+
 ## Configuração de segurança
 
 | Variável | Uso |
@@ -89,9 +99,22 @@ login válido.
 
 Não publique o arquivo `.env` nem o banco SQLite.
 
-## Situação desta etapa
+## Perfis e permissões
 
-Esta etapa protege credenciais, sessões e a administração de usuários.
-A autorização das rotas operacionais e dos canais WebSocket deve ser
-ativada junto com a atualização dos clientes web e móvel, para evitar
-interromper o atendimento durante a migração.
+| Área | Perfis |
+|---|---|
+| Mesas e produtos (leitura) | qualquer usuário autenticado |
+| Cadastro de mesas e produtos | gerente |
+| Comandas e itens | garçom ou gerente |
+| Cozinha | cozinha ou gerente |
+| Fechamento | caixa ou gerente |
+| Administração de usuários | gerente |
+
+Os canais WebSocket exigem o token na conexão:
+
+```text
+ws://127.0.0.1:8000/ws/mesas?token=SEU_TOKEN
+```
+
+Mensagens enviadas por clientes não são retransmitidas. Os eventos do
+sistema continuam sendo publicados somente pelo backend.
