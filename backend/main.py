@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -13,6 +15,7 @@ from backend.api.produtos_routes import router as produtos_router
 from backend.api.usuarios_routes import router as usuarios_router
 from backend.api.websocket_routes import router as websocket_router
 from backend.core.config import settings
+from backend.core.security import exigir_perfis, get_current_user
 from backend.database import Base, engine
 
 
@@ -35,18 +38,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/web", StaticFiles(directory="web", html=True), name="web")
+web_directory = Path(__file__).resolve().parents[1] / "web"
+if web_directory.is_dir():
+    app.mount(
+        "/web",
+        StaticFiles(directory=web_directory, html=True),
+        name="web",
+    )
 
 app.include_router(auth_router)
 app.include_router(usuarios_router)
-app.include_router(mesas_router)
-app.include_router(produtos_router)
-app.include_router(comandas_router)
-app.include_router(item_comanda_router)
+app.include_router(
+    mesas_router,
+    dependencies=[Depends(get_current_user)],
+)
+app.include_router(
+    produtos_router,
+    dependencies=[Depends(get_current_user)],
+)
+app.include_router(
+    comandas_router,
+    dependencies=[Depends(exigir_perfis("garcom", "gerente"))],
+)
+app.include_router(
+    item_comanda_router,
+    dependencies=[Depends(exigir_perfis("garcom", "gerente"))],
+)
 app.include_router(websocket_router)
-app.include_router(cozinha_router)
-app.include_router(notificacoes_router)
-app.include_router(fechamento_router)
+app.include_router(
+    cozinha_router,
+    dependencies=[Depends(exigir_perfis("cozinha", "gerente"))],
+)
+app.include_router(
+    notificacoes_router,
+    dependencies=[Depends(get_current_user)],
+)
+app.include_router(
+    fechamento_router,
+    dependencies=[Depends(exigir_perfis("caixa", "gerente"))],
+)
 
 
 @app.get("/")
@@ -56,5 +86,5 @@ def root():
         "versao": settings.APP_VERSION,
         "status": "online",
         "documentacao": "/docs",
-        "painel_web": "/web",
+        "painel_web": "/web" if web_directory.is_dir() else None,
     }
