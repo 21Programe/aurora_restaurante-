@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from backend.core.security import exigir_perfis
 from backend.database import get_db
 from backend.models.produto import Produto
+from backend.models.usuario import Usuario
+
 
 router = APIRouter(prefix="/produtos", tags=["Produtos"])
+ATIVOS_VALIDOS = {"sim", "nao"}
 
 
 @router.post("/")
@@ -12,33 +16,37 @@ def criar_produto(
     nome: str,
     categoria: str,
     preco: float,
-    db: Session = Depends(get_db)
+    _usuario: Usuario = Depends(exigir_perfis("gerente")),
+    db: Session = Depends(get_db),
 ):
-    existente = db.query(Produto).filter(Produto.nome == nome).first()
+    if preco < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="O preço não pode ser negativo",
+        )
+
+    nome_normalizado = nome.strip()
+    existente = (
+        db.query(Produto)
+        .filter(Produto.nome == nome_normalizado)
+        .first()
+    )
     if existente:
         raise HTTPException(status_code=400, detail="Produto já cadastrado")
 
     produto = Produto(
-        nome=nome,
-        categoria=categoria,
+        nome=nome_normalizado,
+        categoria=categoria.strip(),
         preco=preco,
-        ativo="sim"
+        ativo="sim",
     )
-
     db.add(produto)
     db.commit()
     db.refresh(produto)
-
     return {
         "mensagem": "Produto criado com sucesso",
         "produto_id": produto.id,
-        "produto": {
-            "id": produto.id,
-            "nome": produto.nome,
-            "categoria": produto.categoria,
-            "preco": produto.preco,
-            "ativo": produto.ativo
-        }
+        "produto": produto,
     }
 
 
@@ -46,26 +54,24 @@ def criar_produto(
 def listar_produtos(
     categoria: str | None = None,
     ativo: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(Produto)
-
     if categoria:
         query = query.filter(Produto.categoria == categoria)
-
     if ativo:
         query = query.filter(Produto.ativo == ativo)
-
-    produtos = query.order_by(Produto.nome.asc()).all()
-    return produtos
+    return query.order_by(Produto.nome.asc()).all()
 
 
 @router.get("/{produto_id}")
-def obter_produto(produto_id: int, db: Session = Depends(get_db)):
-    produto = db.query(Produto).filter(Produto.id == produto_id).first()
+def obter_produto(
+    produto_id: int,
+    db: Session = Depends(get_db),
+):
+    produto = db.get(Produto, produto_id)
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
-
     return produto
 
 
@@ -76,38 +82,49 @@ def atualizar_produto(
     categoria: str,
     preco: float,
     ativo: str = "sim",
-    db: Session = Depends(get_db)
+    _usuario: Usuario = Depends(exigir_perfis("gerente")),
+    db: Session = Depends(get_db),
 ):
-    produto = db.query(Produto).filter(Produto.id == produto_id).first()
+    ativo_normalizado = ativo.strip().lower()
+    if preco < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="O preço não pode ser negativo",
+        )
+    if ativo_normalizado not in ATIVOS_VALIDOS:
+        raise HTTPException(
+            status_code=400,
+            detail="Situação do produto inválida",
+        )
+
+    produto = db.get(Produto, produto_id)
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
-    produto.nome = nome
-    produto.categoria = categoria
+    produto.nome = nome.strip()
+    produto.categoria = categoria.strip()
     produto.preco = preco
-    produto.ativo = ativo
-
+    produto.ativo = ativo_normalizado
     db.commit()
     db.refresh(produto)
-
-    return {
-        "mensagem": "Produto atualizado com sucesso",
-        "produto": produto
-    }
+    return {"mensagem": "Produto atualizado com sucesso", "produto": produto}
 
 
 @router.delete("/{produto_id}")
-def desativar_produto(produto_id: int, db: Session = Depends(get_db)):
-    produto = db.query(Produto).filter(Produto.id == produto_id).first()
+def desativar_produto(
+    produto_id: int,
+    _usuario: Usuario = Depends(exigir_perfis("gerente")),
+    db: Session = Depends(get_db),
+):
+    produto = db.get(Produto, produto_id)
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
     produto.ativo = "nao"
     db.commit()
     db.refresh(produto)
-
     return {
         "mensagem": "Produto desativado com sucesso",
         "produto_id": produto.id,
-        "ativo": produto.ativo
+        "ativo": produto.ativo,
     }
