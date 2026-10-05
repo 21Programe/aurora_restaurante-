@@ -1,4 +1,6 @@
 from sqlalchemy.orm import Session
+
+from backend.core.security import gerar_hash_senha, verificar_senha
 from backend.models.usuario import Usuario
 
 
@@ -9,7 +11,7 @@ class AuthService:
         nome: str,
         email: str,
         senha: str,
-        perfil: str = "garcom"
+        perfil: str = "garcom",
     ):
         existente = db.query(Usuario).filter(Usuario.email == email).first()
         if existente:
@@ -18,8 +20,8 @@ class AuthService:
         usuario = Usuario(
             nome=nome,
             email=email,
-            senha=senha,
-            perfil=perfil
+            senha=gerar_hash_senha(senha),
+            perfil=perfil,
         )
 
         db.add(usuario)
@@ -31,10 +33,7 @@ class AuthService:
     def login(db: Session, email: str, senha: str):
         usuario = db.query(Usuario).filter(Usuario.email == email).first()
 
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
-
-        if usuario.senha != senha:
-            raise ValueError("Senha inválida")
+        if not usuario or not verificar_senha(senha, usuario.senha):
+            raise ValueError("Credenciais inválidas")
 
         return usuario
